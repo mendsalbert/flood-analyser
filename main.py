@@ -34,7 +34,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -109,47 +109,6 @@ async def health_check():
         "ai_model": "Gemini 2.0 Flash",
         "timestamp": datetime.now().isoformat()
     }
-
-@app.post("/api/analyze/coordinates", response_model=AnalysisResponse)
-async def analyze_coordinates(request: CoordinateRequest):
-    """
-    Analyze flood risk based on coordinates using Gemini AI
-    """
-    try:
-        logger.info(f"Analyzing coordinates: {request.latitude}, {request.longitude}")
-        
-        prompt = f"""
-        Analyze flood risk for coordinates: {request.latitude}, {request.longitude}
-        
-        Please provide a flood risk assessment with the following information:
-        1. Risk Level (Low/Medium/High/Very High)
-        2. Description of the risk
-        3. 3-5 specific recommendations
-        4. Estimated elevation in meters
-        5. Estimated distance from water bodies in meters
-        
-        Format your response as JSON with these fields:
-        - risk_level
-        - description  
-        - recommendations (array of strings)
-        - elevation (number)
-        - distance_from_water (number)
-        """
-        
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
-        response = model.generate_content(prompt)
-        
-        parsed_data = parse_gemini_response(response.text)
-        
-        return AnalysisResponse(
-            success=True,
-            **parsed_data,
-            message="Analysis completed successfully using Gemini AI"
-        )
-        
-    except Exception as e:
-        logger.error(f"Error analyzing coordinates: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/analyze/image")
 async def analyze_image(file: UploadFile = File(...)):
@@ -267,10 +226,12 @@ def generate_image_risk_assessment() -> dict:
     }
 
 if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=True,
         log_level="info"
     ) 
